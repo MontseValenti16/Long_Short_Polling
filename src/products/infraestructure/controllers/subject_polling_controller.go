@@ -3,7 +3,6 @@ package controllers
 import (
     "arquitecturahex/src/products/application"
     "github.com/gin-gonic/gin"
-    "net/http"
     "sync"
     "time"
 )
@@ -25,7 +24,7 @@ func NewSubjectPollingController(viewSubjectUseCase *application.ViewSubjectUseC
 }
 
 func (s *SubjectPollingController) startPolling() {
-    ticker := time.NewTicker(5 * time.Second) // Intervalo de polling
+    ticker := time.NewTicker(5 * time.Second)
     defer ticker.Stop()
 
     for {
@@ -48,15 +47,24 @@ func (s *SubjectPollingController) startPolling() {
 }
 
 func (s *SubjectPollingController) PollSubjects(c *gin.Context) {
-    select {
-    case changed := <-s.changeChan:
-        if changed {
-            c.JSON(http.StatusOK, gin.H{"message": "Hubo cambios en las asignaturas"})
-        } else {
-            c.JSON(http.StatusOK, gin.H{"message": "No hubo cambios en las asignaturas"})
+    c.Writer.Header().Set("Content-Type", "text/event-stream")
+    c.Writer.Header().Set("Cache-Control", "no-cache")
+    c.Writer.Header().Set("Connection", "keep-alive")
+    c.Writer.Flush()
+
+    for {
+        select {
+        case changed := <-s.changeChan:
+            if changed {
+                c.SSEvent("message", "Hubo cambios en las asignaturas")
+            } else {
+                c.SSEvent("message", "No hubo cambios en las asignaturas")
+            }
+            c.Writer.Flush()
+        case <-time.After(5 * time.Second):
+            c.SSEvent("message", "No hubo cambios en las asignaturas")
+            c.Writer.Flush()
         }
-    case <-time.After(5 * time.Second):
-        c.JSON(http.StatusOK, gin.H{"message": "No hubo cambios en las asignaturas"})
     }
 }
 

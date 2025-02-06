@@ -54,10 +54,12 @@ func main() {
 
     studentPollingController := controllers.NewStudentPollingController(viewStudentUseCase)
     subjectPollingController := controllers.NewSubjectPollingController(viewSubjectUseCase)
+
     studentLongPollingController := controllers.NewStudentLongPollingController(viewStudentUseCase)
 
     routes.RegisterStudentRoutes(router, studentController)
     routes.RegisterSubjectRoutes(router, subjectController)
+
     routes.RegisterPollingRoutes(router, studentPollingController, subjectPollingController, studentLongPollingController)
 
     router.GET("/ping", func(c *gin.Context) {

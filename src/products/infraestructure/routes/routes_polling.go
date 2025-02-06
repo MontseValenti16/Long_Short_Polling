@@ -10,6 +10,6 @@ func RegisterPollingRoutes(router *gin.Engine, studentPollingController *control
     {
         pollingGroup.GET("/students", studentPollingController.PollStudents)
         pollingGroup.GET("/subjects", subjectPollingController.PollSubjects)
-        pollingGroup.GET("/students/long", studentLongPollingController.LongPollStudents)
+        pollingGroup.GET("/students/long", studentLongPollingController.LongPollStudents) 
     }
 }

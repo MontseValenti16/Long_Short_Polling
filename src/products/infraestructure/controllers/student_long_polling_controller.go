@@ -19,31 +19,32 @@ func NewStudentLongPollingController(viewStudentUseCase *application.ViewStudent
 }
 
 func (s *StudentLongPollingController) LongPollStudents(c *gin.Context) {
-    timeout := time.After(15 * time.Second)
-    ticker := time.Tick(5 * time.Second)
+    c.Writer.Header().Set("Content-Type", "application/json")
+    c.Writer.Header().Set("Transfer-Encoding", "chunked") 
+    c.Writer.Flush() 
 
     for {
-        select {
-        case <-timeout:
-            c.JSON(http.StatusOK, gin.H{"message": "No hubo cambios en los estudiantes"})
-            return
-        case <-ticker:
-            s.mu.Lock()
-            students, err := s.viewStudentUseCase.Execute()
-            if err != nil {
-                s.mu.Unlock()
-                c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron obtener los estudiantes"})
-                return
-            }
+        time.Sleep(15 * time.Second) 
 
-            if s.hasChanged(len(students)) {
-                s.lastStudents = len(students)
-                s.mu.Unlock()
-                c.JSON(http.StatusOK, gin.H{"message": "Hubo cambios en los estudiantes"})
-                return
-            }
-            s.mu.Unlock()
+        s.mu.Lock()
+        students, err := s.viewStudentUseCase.Execute()
+        s.mu.Unlock()
+
+        if err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "No se pudieron obtener los estudiantes"})
+            return
         }
+
+        if s.hasChanged(len(students)) {
+            s.mu.Lock()
+            s.lastStudents = len(students)
+            s.mu.Unlock()
+            c.SecureJSON(http.StatusOK, gin.H{"message": "Hubo cambios en los estudiantes"})
+        } else {
+            c.SecureJSON(http.StatusOK, gin.H{"message": "No hubo cambios en los estudiantes"})
+        }
+        
+        c.Writer.Flush() 
     }
 }
 
